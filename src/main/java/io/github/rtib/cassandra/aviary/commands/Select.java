@@ -54,18 +54,6 @@ public class Select extends AbstractConnectCommand {
     @SuppressWarnings("FieldMayBeFinal")
     private File outFile = new File("aviary.json");
     
-    @Option(
-            names = "--keyspace-filter",
-            description = "Regex to filter keyspaces. Only matching keyspaces will be processed."
-    )
-    String keyspaceFilter;
-
-    @Option(
-            names = "--table-filter",
-            description = "Regex to filter tables. Only tables with matching name will be processed."
-    )
-    String tableFilter;
-
     @Override
     protected void execute() {
         try (var writer = new AviaryWriter(outFile)) {
@@ -73,8 +61,6 @@ public class Select extends AbstractConnectCommand {
                     .forName(selectorClassName)
                     .withCqlSession(getCqlSession())
                     .withCanaryWriter(writer)
-                    .withKeyspaceFilter(keyspaceFilter)
-                    .withTableFilter(tableFilter)
                     .build();
             selector.selectCanaries();
         } catch (IOException ex) {

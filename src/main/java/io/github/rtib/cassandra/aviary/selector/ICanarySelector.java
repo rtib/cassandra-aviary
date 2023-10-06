@@ -26,18 +26,5 @@ public interface ICanarySelector {
      * Start selecting canaries.
      */
     void selectCanaries();
-    
-    /**
-     * Set regex to be used as filter on keyspace names.
-     * 
-     * @param ksFilter
-     */
-    void setKeyspaceFilter(final String ksFilter);
 
-    /**
-     * Set regex to be used as filter on table names.
-     * 
-     * @param tableFilter
-     */
-    void setTableFilter(final String tableFilter);
 }

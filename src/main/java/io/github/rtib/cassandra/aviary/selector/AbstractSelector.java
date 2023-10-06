@@ -49,9 +49,6 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
     protected final ExecutorService executor;
     protected final CassandraMetadataHelper helper;
 
-    private String keyspaceFilter = ".*";
-    private String tableFilter = ".*";
-    
     /**
      * Constructor of all ICanarySelector implementations extending this class.
      * @param cqlSession the connected CqlSession
@@ -73,30 +70,6 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
     }
     
     @Override
-    public void setKeyspaceFilter(final String keyspaceFilter) {
-        if (keyspaceFilter == null)
-            return;
-        try {
-            Pattern.compile(keyspaceFilter);
-            this.keyspaceFilter = keyspaceFilter;
-        } catch (PatternSyntaxException ex) {
-            LOG.log(Level.WARNING, "failed to set keyspace filter.", ex);
-        }
-    }
-
-    @Override
-    public void setTableFilter(final String tableFilter) {
-        if (tableFilter == null)
-            return;
-        try {
-            Pattern.compile(tableFilter);
-            this.tableFilter = tableFilter;
-        } catch (PatternSyntaxException ex) {
-            LOG.log(Level.WARNING, "failed to set table filter.", ex);
-        }
-    }
-
-    @Override
     public void selectCanaries() {
         executeSelectCanaries();
     }
@@ -114,16 +87,8 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
     protected Set<IOrigin> getOrigins() {
         HashSet<IOrigin> res = new HashSet<>();
         // TODO: a more versatile filter infrastructure
-        for (KeyspaceMetadata keyspace : cqlSession.getMetadata().getKeyspaces().values()
-                .stream()
-                .filter(ks -> ks.getName().asCql(true).matches(keyspaceFilter))
-                .collect(Collectors.toList())
-                ) {
-            for (CqlIdentifier table : keyspace.getTables().keySet()
-                    .stream()
-                    .filter(table -> table.asCql(true).matches(tableFilter))
-                    .collect(Collectors.toSet())
-                    ) {
+        for (KeyspaceMetadata keyspace : cqlSession.getMetadata().getKeyspaces().values()) {
+            for (CqlIdentifier table : keyspace.getTables().keySet()) {
                 res.add(new Origin(keyspace.getName().asCql(true), table.asCql(true)));
             }
         }
@@ -146,8 +111,6 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
         private Class<?> selectorClass;
         private CqlSession session;
         private ICanaryWriter writer;
-        private String keyspaceFilter;
-        private String tableFilter;
 
         public Builder() {
         }
@@ -194,26 +157,6 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
         }
         
         /**
-         * Setup ICanarySelector to be built with a keyspace filter.
-         * @param keyspaceFilter regex to filter keyspace names
-         * @return this builder instance
-         */
-        public Builder withKeyspaceFilter(final String keyspaceFilter) {
-            this.keyspaceFilter = keyspaceFilter;
-            return this;
-        }
-        
-        /**
-         * Setup ICanarySelector to be built with a table filter.
-         * @param tableFilter regex to filter table names
-         * @return this builder instance
-         */
-        public Builder withTableFilter(final String tableFilter) {
-            this.tableFilter = tableFilter;
-            return this;
-        }
-        
-        /**
          * Instantiate the selected ICanarySelector class and set up with
          * parameter provided to this builder.
          * @return newly built ICanarySelector instance
@@ -223,8 +166,6 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
             ICanarySelector inst;
             try {
                 inst = (ICanarySelector) selectorClass.getConstructor(CqlSession.class, ICanaryWriter.class).newInstance(session, writer);
-                inst.setKeyspaceFilter(keyspaceFilter);
-                inst.setTableFilter(tableFilter);
                 return inst;
             } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
                 throw new SelectorBuilderException("Failed to build selector instance.", ex);
