@@ -85,14 +85,14 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
      * @return set of origins, i.e. keyspace-table-pairs
      */
     protected Set<IOrigin> getOrigins() {
-        HashSet<IOrigin> res = new HashSet<>();
         // TODO: a more versatile filter infrastructure
-        for (KeyspaceMetadata keyspace : cqlSession.getMetadata().getKeyspaces().values()) {
-            for (CqlIdentifier table : keyspace.getTables().keySet()) {
-                res.add(new Origin(keyspace.getName().asCql(true), table.asCql(true)));
-            }
-        }
-        return Set.copyOf(res);
+        return cqlSession.getMetadata().getKeyspaces().values().stream()
+                .parallel()
+                .<IOrigin> mapMulti((keyspace, consumer) -> {
+                    for (CqlIdentifier table : keyspace.getTables().keySet())
+                        consumer.accept(new Origin(keyspace.getName().asCql(true), table.asCql(true)));
+                })
+                .collect(Collectors.toSet());
     }
 
     /**
