@@ -20,7 +20,7 @@ The tool needs Java-21 or later.
 
 ### Installation
 
-TBD
+Download and extract any of the distribution bundles from the [releases page](https://github.com/rtib/cassandra-aviary/releases).
 
 ## Configuration
 
