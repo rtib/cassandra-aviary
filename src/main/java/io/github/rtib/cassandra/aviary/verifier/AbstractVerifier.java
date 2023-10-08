@@ -21,8 +21,12 @@ import io.github.rtib.cassandra.aviary.model.IOrigin;
 import io.github.rtib.cassandra.aviary.utils.CassandraMetadataHelper;
 import io.github.rtib.cassandra.aviary.utils.StatementCache;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Predicate;
 import org.apache.commons.lang3.ClassUtils;
 
 /**
@@ -53,6 +57,7 @@ public abstract class AbstractVerifier extends StatementCache<IOrigin> implement
         private CqlSession session;
         private ExecutorService executor;
         private Iterable<ICanary> reader;
+        private List<Predicate<IOrigin>> filters = Collections.EMPTY_LIST;
 
         public Builder() {
             this.executor = Executors.newVirtualThreadPerTaskExecutor();
@@ -87,11 +92,20 @@ public abstract class AbstractVerifier extends StatementCache<IOrigin> implement
             return this;
         }
         
+        public Builder withOriginFilters(final Predicate<IOrigin>... filters) {
+            if (filters == null || filters.length == 0)
+                this.filters = Collections.EMPTY_LIST;
+            else
+                this.filters = Arrays.asList(filters);
+            return this;
+        }
+        
         public ICanaryVerifier build() throws VerifierBuilderException {
             ICanaryVerifier inst;
             try {
                 inst = (ICanaryVerifier) selectorClass.getConstructor(CqlSession.class, Iterable.class, ExecutorService.class)
                         .newInstance(session, reader, executor);
+                inst.setOriginFilter(filters.stream().reduce(x->true, Predicate::and));
             } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException ex) {
                 throw new VerifierBuilderException("Failed to build verifier instance.", ex);
             }

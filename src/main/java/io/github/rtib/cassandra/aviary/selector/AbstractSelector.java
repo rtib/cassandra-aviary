@@ -18,21 +18,20 @@ package io.github.rtib.cassandra.aviary.selector;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.metadata.TokenMap;
-import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import io.github.rtib.cassandra.aviary.model.IOrigin;
 import io.github.rtib.cassandra.aviary.storage.ICanaryWriter;
 import io.github.rtib.cassandra.aviary.storage.Origin;
 import io.github.rtib.cassandra.aviary.utils.CassandraMetadataHelper;
 import io.github.rtib.cassandra.aviary.utils.StatementCache;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashSet;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ClassUtils;
 
@@ -48,6 +47,7 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
     protected final ICanaryWriter canaryWriter;
     protected final ExecutorService executor;
     protected final CassandraMetadataHelper helper;
+    private Predicate<IOrigin> originFilter;
 
     /**
      * Constructor of all ICanarySelector implementations extending this class.
@@ -73,6 +73,11 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
     public void selectCanaries() {
         executeSelectCanaries();
     }
+
+    @Override
+    public void setOriginFilter(Predicate<IOrigin> filter) {
+        this.originFilter = filter;
+    }
     
     /**
      * Here the actual canary selection needs to be implemented.
@@ -92,6 +97,7 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
                     for (CqlIdentifier table : keyspace.getTables().keySet())
                         consumer.accept(new Origin(keyspace.getName().asCql(true), table.asCql(true)));
                 })
+                .filter(originFilter)
                 .collect(Collectors.toSet());
     }
 
@@ -111,6 +117,7 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
         private Class<?> selectorClass;
         private CqlSession session;
         private ICanaryWriter writer;
+        private List<Predicate<IOrigin>> filters = Collections.EMPTY_LIST;
 
         public Builder() {
         }
@@ -147,6 +154,22 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
         }
         
         /**
+         * Set any number of OriginFilter instances as filter. If called without
+         * argument, a null value or an empty array, filters will be reset to
+         * empty list. The list will be reduced to a single predicate by
+         * combining all filters of the list with and operations.
+         * @param filters zero of any number of predicate instances, e.g. of OriginFilter class
+         * @return this builder instance
+         */
+        public Builder withOriginFilters(final Predicate<IOrigin>... filters) {
+            if (filters == null || filters.length == 0)
+                this.filters = Collections.EMPTY_LIST;
+            else
+                this.filters = Arrays.asList(filters);
+            return this;
+        }
+
+        /**
          * Setup builder with an ICanaryWriter to be used for storing selected canaries.
          * @param writer an instance of an ICanaryWriter
          * @return this builder instance
@@ -166,6 +189,7 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
             ICanarySelector inst;
             try {
                 inst = (ICanarySelector) selectorClass.getConstructor(CqlSession.class, ICanaryWriter.class).newInstance(session, writer);
+                inst.setOriginFilter(filters.stream().reduce(x->true, Predicate::and));
                 return inst;
             } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
                 throw new SelectorBuilderException("Failed to build selector instance.", ex);

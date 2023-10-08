@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -43,9 +44,15 @@ import java.util.stream.Collectors;
 public class SimpleVerifier extends AbstractVerifier {
 
     private static final Logger LOG = Logger.getLogger(SimpleVerifier.class.getName());
+    private Predicate<IOrigin> originFilter;
 
     public SimpleVerifier(CqlSession session, Iterable<ICanary> reader, ExecutorService executor) {
         super(session, reader, executor);
+    }
+
+    @Override
+    public void setOriginFilter(Predicate<IOrigin> filter) {
+        this.originFilter = filter;
     }
 
     @Override
@@ -53,10 +60,12 @@ public class SimpleVerifier extends AbstractVerifier {
         // Create callable tasks for each canary, submit them and store their Futures.
         Queue<Future<Verified>> tasks = new ConcurrentLinkedQueue<>();
         for (var canary : reader) {
-            Callable<Verified> task = () -> {
-                return verifyCanary(canary);
-            };
-            tasks.add(executor.submit(task));
+            if (originFilter.test(canary.getOrigin())) {
+                Callable<Verified> task = () -> {
+                    return verifyCanary(canary);
+                };
+                tasks.add(executor.submit(task));
+            }
         }
         
         // Process the Futures and sum up the results by origin

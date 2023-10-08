@@ -15,6 +15,9 @@
  */
 package io.github.rtib.cassandra.aviary.selector;
 
+import io.github.rtib.cassandra.aviary.model.IOrigin;
+import java.util.function.Predicate;
+
 /**
  * Interface of canary selectors.
  * 
@@ -27,4 +30,10 @@ public interface ICanarySelector {
      */
     void selectCanaries();
 
+    /**
+     * Set a filter predicate the list of origins need to pass through. Canaries
+     * will only be selected from origins passing the filter.
+     * @param filter a stream predicate that apply to IOrigin entries
+     */
+    default void setOriginFilter(Predicate<IOrigin> filter) {};
 }

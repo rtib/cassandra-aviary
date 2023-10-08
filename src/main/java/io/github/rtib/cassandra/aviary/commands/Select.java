@@ -18,6 +18,8 @@ package io.github.rtib.cassandra.aviary.commands;
 import io.github.rtib.cassandra.aviary.selector.AbstractSelector;
 import io.github.rtib.cassandra.aviary.selector.ICanarySelector;
 import io.github.rtib.cassandra.aviary.storage.AviaryWriter;
+import io.github.rtib.cassandra.aviary.utils.OriginFilter;
+import io.github.rtib.cassandra.aviary.utils.OriginFilterConverter;
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -48,6 +50,19 @@ public class Select extends AbstractConnectCommand {
     private String selectorClassName = "io.github.rtib.cassandra.aviary.selector.RangeSelector";
     
     @Option(
+            names = {"-f", "--filter"},
+            description = """
+                          Pattern of origins to exclude from processing. Note, that
+                          a filter is denoted as "<keyspace filter>:<table filter>"
+                          where both keyspace and table filters are regex, delimited
+                          by a colon (:). Filter regex are compiled case insensitive.
+                          Example: -f "test:.*"
+                          """,
+            converter = OriginFilterConverter.class
+    )
+    private OriginFilter[] filters;
+    
+    @Option(
             names = {"-o", "--output"},
             description = "Output file to store the selected canaries."
     )
@@ -60,6 +75,7 @@ public class Select extends AbstractConnectCommand {
             ICanarySelector selector = AbstractSelector.builder()
                     .forName(selectorClassName)
                     .withCqlSession(getCqlSession())
+                    .withOriginFilters(filters)
                     .withCanaryWriter(writer)
                     .build();
             selector.selectCanaries();

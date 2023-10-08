@@ -13,26 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.rtib.cassandra.aviary.verifier;
+package io.github.rtib.cassandra.aviary.utils;
 
-import io.github.rtib.cassandra.aviary.model.IOrigin;
-import java.util.function.Predicate;
+import picocli.CommandLine.ITypeConverter;
 
 /**
- *
+ * PicoCLI helper class to convert a String option value to an OriginFilter.
  * @author repasi
  */
-public interface ICanaryVerifier {
-    
-    /**
-     * Verify all canaries.
-     */
-    void verifyCanaries();
+public class OriginFilterConverter implements ITypeConverter<OriginFilter> {
 
-    /**
-     * Set a filter predicate the list of origins need to pass through. Only
-     * canaries will be verified which origin is passing the filter.
-     * @param filter a stream predicate that apply to IOrigin entries
-     */
-    default void setOriginFilter(Predicate<IOrigin> filter) {};
+    @Override
+    public OriginFilter convert(String string) throws Exception {
+        return new OriginFilter(string);
+    }
+    
 }

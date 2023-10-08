@@ -16,6 +16,8 @@
 package io.github.rtib.cassandra.aviary.commands;
 
 import io.github.rtib.cassandra.aviary.storage.AviaryReader;
+import io.github.rtib.cassandra.aviary.utils.OriginFilter;
+import io.github.rtib.cassandra.aviary.utils.OriginFilterConverter;
 import io.github.rtib.cassandra.aviary.verifier.AbstractVerifier;
 import io.github.rtib.cassandra.aviary.verifier.ICanaryVerifier;
 import java.io.File;
@@ -48,6 +50,19 @@ public class Verify extends AbstractConnectCommand {
     private String verifierClassName = "io.github.rtib.cassandra.aviary.verifier.SimpleVerifier";
     
     @Option(
+            names = {"-f", "--filter"},
+            description = """
+                          Pattern of origins to exclude from processing. Note, that
+                          a filter is denoted as "<keyspace filter>:<table filter>"
+                          where both keyspace and table filters are regex, delimited
+                          by a colon (:). Filter regex are compiled case insensitive.
+                          Example: -f "test:.*"
+                          """,
+            converter = OriginFilterConverter.class
+    )
+    private OriginFilter[] filters;
+    
+    @Option(
             names = {"-i", "--input"},
             description = "Input file store the canaries to be verify."
     )
@@ -61,6 +76,7 @@ public class Verify extends AbstractConnectCommand {
                     .forName(verifierClassName)
                     .withAviaryReader(new AviaryReader(inFile))
                     .withCqlSession(getCqlSession())
+                    .withOriginFilters(filters)
                     .build();
             verifier.verifyCanaries();
         } catch (IOException ex) {
