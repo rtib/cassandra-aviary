@@ -24,7 +24,7 @@ Download and extract any of the distribution bundles from the [releases page](ht
 
 ## Configuration
 
-Configuration is done via TypeSafe Config. Place a file at `etc/application.conf` to override the defaults. Currently, the only topic covered by the configuration is the Cassandra connection. See the [DataStax Java Driver](https://docs.datastax.com/en/developer/java-driver/4.0/manual/core/configuration/) for more details.
+Configuration is done via TypeSafe Config. Place a file at `etc/application.conf` to override the defaults. Currently, the only topic covered by the configuration is the Cassandra connection. See the [DataStax Java Driver](https://docs.datastax.com/en/developer/java-driver/4.17/manual/core/configuration/) for more details.
 
 ### Cassandra SSL connection
 
