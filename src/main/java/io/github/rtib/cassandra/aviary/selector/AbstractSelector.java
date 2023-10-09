@@ -90,7 +90,6 @@ public abstract class AbstractSelector extends StatementCache<IOrigin> implement
      * @return set of origins, i.e. keyspace-table-pairs
      */
     protected Set<IOrigin> getOrigins() {
-        // TODO: a more versatile filter infrastructure
         return cqlSession.getMetadata().getKeyspaces().values().stream()
                 .parallel()
                 .<IOrigin> mapMulti((keyspace, consumer) -> {
