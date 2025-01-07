@@ -38,7 +38,7 @@ Add the following snippet to your configuration:
 
 ```hocon
 datastax-java-driver {
-  basic {
+  advanced {
     ssl-engine-factory {
       class = DefaultSslEngineFactory
       truststore-path = etc/truststore.jks
